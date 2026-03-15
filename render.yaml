@@ -1,0 +1,96 @@
+﻿services:
+  - type: web
+    name: mailpilot-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: REDIS_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: EMAIL_JOB_ATTEMPTS
+        value: 3
+      - key: EMAIL_JOB_BACKOFF_MS
+        value: 5000
+      - key: EMAIL_WORKER_CONCURRENCY
+        value: 5
+      - key: CLIENT_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+
+  - type: worker
+    name: mailpilot-worker
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm run worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: REDIS_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: EMAIL_JOB_ATTEMPTS
+        value: 3
+      - key: EMAIL_JOB_BACKOFF_MS
+        value: 5000
+      - key: EMAIL_WORKER_CONCURRENCY
+        value: 5
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+
+  - type: static
+    name: mailpilot-web
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://mailpilot-api.onrender.com/api
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
