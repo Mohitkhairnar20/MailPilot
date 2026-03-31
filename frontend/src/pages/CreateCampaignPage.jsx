@@ -158,7 +158,7 @@ function CreateCampaignPage() {
   const [invalidRecipients, setInvalidRecipients] = useState([]);
   const [recipientInput, setRecipientInput] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
-  const [contentMode, setContentMode] = useState("manual");
+  const [contentMode, setContentMode] = useState("");
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templateName, setTemplateName] = useState("");
@@ -471,6 +471,11 @@ function CreateCampaignPage() {
     }
 
     if (stepIndex === 1) {
+      if (!contentMode) {
+        setError("Choose manual or AI assisted before continuing.");
+        return false;
+      }
+
       if (!formData.title.trim() || !formData.subject.trim() || !formData.content.trim()) {
         setError("Campaign title, subject, and content are required before preview.");
         return false;
@@ -558,7 +563,7 @@ function CreateCampaignPage() {
 
       setMessage("Campaign created successfully and queued for delivery.");
       setFormData(initialState);
-      setContentMode("manual");
+      setContentMode("");
       setSelectedTemplateId("");
       setTemplateName("");
       setRecipients([]);
@@ -679,7 +684,7 @@ function CreateCampaignPage() {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Step 2</p>
               <h2 className="mt-2 font-display text-[1.8rem] text-ink">Content</h2>
-              <p className="mt-2 text-slate-600">Write the template yourself or have AI draft it from your prompt, then edit the result manually.</p>
+              <p className="mt-2 text-slate-600">Choose one way to create the email first. Then MailPilot will show only the fields needed for that option.</p>
             </div>
 
             <label className="block">
@@ -693,100 +698,155 @@ function CreateCampaignPage() {
               />
             </label>
 
-            <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Template library</p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        Load a saved draft or store the current subject and content for reuse.
-                      </p>
+            <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Choose how to create the draft</p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setContentMode("manual")}
+                  className={contentMode === "manual" ? "rounded-2xl border border-[#132238] bg-[#132238] px-5 py-5 text-left text-white transition" : "rounded-2xl border border-slate-200 bg-white px-5 py-5 text-left text-slate-800 transition hover:border-slate-300"}
+                >
+                  <p className="text-base font-semibold">Manual</p>
+                  <p className={contentMode === "manual" ? "mt-2 text-sm text-slate-300" : "mt-2 text-sm text-slate-500"}>
+                    Write the subject and email content yourself.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setContentMode("ai")}
+                  className={contentMode === "ai" ? "rounded-2xl border border-[#132238] bg-[#132238] px-5 py-5 text-left text-white transition" : "rounded-2xl border border-slate-200 bg-white px-5 py-5 text-left text-slate-800 transition hover:border-slate-300"}
+                >
+                  <p className="text-base font-semibold">AI assisted</p>
+                  <p className={contentMode === "ai" ? "mt-2 text-sm text-slate-300" : "mt-2 text-sm text-slate-500"}>
+                    Enter a prompt and let MailPilot generate the draft first.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {!contentMode ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-slate-600">
+                Select <span className="font-semibold text-slate-800">Manual</span> or <span className="font-semibold text-slate-800">AI assisted</span> to continue.
+              </div>
+            ) : null}
+
+            {contentMode === "manual" ? (
+              <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Optional template</p>
+                        <p className="mt-1 text-sm text-slate-600">Load a saved template, or skip this and write your message below.</p>
+                      </div>
+                      <Link to="/app/templates" className="text-sm font-semibold text-coral">
+                        Open library
+                      </Link>
                     </div>
-                    <Link to="/app/templates" className="text-sm font-semibold text-coral">
-                      Open library
-                    </Link>
+
+                    <div className="mt-4 space-y-3">
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-slate-700">Template</span>
+                        <select
+                          value={selectedTemplateId}
+                          onChange={(event) => handleTemplateSelect(event.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-coral"
+                          disabled={isLoadingTemplates}
+                        >
+                          <option value="">{isLoadingTemplates ? "Loading templates..." : "Select a saved template"}</option>
+                          {templates.map((template) => (
+                            <option key={template._id} value={template._id}>
+                              {template.name} ({template.source})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
                   </div>
 
-                  <div className="mt-4 space-y-3">
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-semibold text-slate-700">Load template</span>
-                      <select
-                        value={selectedTemplateId}
-                        onChange={(event) => handleTemplateSelect(event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-coral"
-                        disabled={isLoadingTemplates}
+                  <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4 text-sm text-slate-600">
+                    Write the email subject and content on the right. You can use placeholders to personalize each message.
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">Email subject</span>
+                    <input
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-coral"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      placeholder="Introducing MailPilot for {{company}}"
+                      required
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">Email content</span>
+                    <textarea
+                      className="min-h-72 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-coral"
+                      name="content"
+                      value={formData.content}
+                      onChange={handleChange}
+                      placeholder="Hello {{firstName}},\n\nI wanted to share..."
+                      required
+                    />
+                  </label>
+
+                  <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Supported placeholders</p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Use <code>{"{{name}}"}</code>, <code>{"{{firstName}}"}</code>, <code>{"{{email}}"}</code>, <code>{"{{company}}"}</code>, or <code>{"{{role}}"}</code>.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Save this draft</p>
+                    <p className="mt-1 text-sm text-slate-600">Optional. Save the current subject and body for later reuse.</p>
+
+                    <div className="mt-4 space-y-3">
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-slate-700">Template name</span>
+                        <input
+                          value={templateName}
+                          onChange={(event) => setTemplateName(event.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-coral"
+                          placeholder="Founders outreach v1"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={handleSaveTemplate}
+                        disabled={isSavingTemplate}
+                        className="rounded-xl bg-[#132238] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        <option value="">{isLoadingTemplates ? "Loading templates..." : "Select a saved template"}</option>
-                        {templates.map((template) => (
-                          <option key={template._id} value={template._id}>
-                            {template.name} ({template.source})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-semibold text-slate-700">Template name</span>
-                      <input
-                        value={templateName}
-                        onChange={(event) => setTemplateName(event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-coral"
-                        placeholder="Founders outreach v1"
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveTemplate}
-                      disabled={isSavingTemplate}
-                      className="rounded-xl bg-[#132238] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isSavingTemplate ? "Saving template..." : selectedTemplateId ? "Update template" : "Save to library"}
-                    </button>
+                        {isSavingTemplate ? "Saving template..." : selectedTemplateId ? "Update template" : "Save to library"}
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </div>
+            ) : null}
 
-                <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Template mode</p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => setContentMode("manual")}
-                      className={contentMode === "manual" ? "rounded-xl border border-[#132238] bg-[#132238] px-4 py-3 text-left text-white transition" : "rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-slate-700 transition"}
-                    >
-                      <p className="text-sm font-semibold">Manual</p>
-                      <p className={contentMode === "manual" ? "mt-1 text-xs text-slate-300" : "mt-1 text-xs text-slate-500"}>
-                        Type subject and content directly.
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setContentMode("ai")}
-                      className={contentMode === "ai" ? "rounded-xl border border-[#132238] bg-[#132238] px-4 py-3 text-left text-white transition" : "rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-slate-700 transition"}
-                    >
-                      <p className="text-sm font-semibold">AI assisted</p>
-                      <p className={contentMode === "ai" ? "mt-1 text-xs text-slate-300" : "mt-1 text-xs text-slate-500"}>
-                        Generate a draft from a prompt, then edit it.
-                      </p>
-                    </button>
-                  </div>
-                </div>
-
-                {contentMode === "ai" ? (
+            {contentMode === "ai" ? (
+              <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+                <div className="space-y-4">
                   <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
                     <label className="block">
                       <span className="mb-2 block text-sm font-semibold text-slate-700">AI prompt</span>
                       <textarea
-                        className="min-h-40 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-coral"
+                        className="min-h-44 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-coral"
                         name="templatePrompt"
                         value={formData.templatePrompt}
                         onChange={handleChange}
-                        placeholder="Write a short product introduction email for technical prospects. Mention the value clearly, keep it concise, and use placeholders where helpful."
+                        placeholder="Write a short introduction email for startup founders. Keep it concise, clear, and personalized with placeholders like {{firstName}} and {{company}}."
                       />
                     </label>
                     <p className="mt-3 text-sm text-slate-500">
-                      MailPilot uses your prompt, the optional campaign title, and your first few recipients as context. Generated output is still editable.
+                      Describe what you want, generate the draft, then review the generated subject and content on the right.
                     </p>
                     <button
                       type="button"
@@ -797,46 +857,42 @@ function CreateCampaignPage() {
                       {isGeneratingTemplate ? "Generating draft..." : "Generate draft with AI"}
                     </button>
                   </div>
-                ) : (
-                  <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4 text-sm text-slate-600">
-                    Manual mode keeps the existing workflow. Type the subject and body directly, then continue to preview.
-                  </div>
-                )}
+                </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Supported placeholders</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    <code>{"{{name}}"}</code>, <code>{"{{firstName}}"}</code>, <code>{"{{email}}"}</code>, <code>{"{{company}}"}</code>, <code>{"{{role}}"}</code>
-                  </p>
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">Generated subject</span>
+                    <input
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-coral"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      placeholder="AI-generated subject will appear here"
+                      required
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">Generated email content</span>
+                    <textarea
+                      className="min-h-72 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-coral"
+                      name="content"
+                      value={formData.content}
+                      onChange={handleChange}
+                      placeholder="AI-generated email content will appear here"
+                      required
+                    />
+                  </label>
+
+                  <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Supported placeholders</p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Use <code>{"{{name}}"}</code>, <code>{"{{firstName}}"}</code>, <code>{"{{email}}"}</code>, <code>{"{{company}}"}</code>, or <code>{"{{role}}"}</code>.
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-4">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">Email subject</span>
-                  <input
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-coral"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    placeholder="Introducing MailPilot for {{company}}"
-                    required
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">Email content</span>
-                  <textarea
-                    className="min-h-72 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-coral"
-                    name="content"
-                    value={formData.content}
-                    onChange={handleChange}
-                    placeholder="Hello {{firstName}},\n\nI wanted to share..."
-                    required
-                  />
-                </label>
-              </div>
-            </div>
+            ) : null}
           </div>
         ) : null}
 

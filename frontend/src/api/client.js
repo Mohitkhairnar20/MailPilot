@@ -1,7 +1,23 @@
 import axios from "axios";
 
+const normalizeApiBaseUrl = (value) => {
+  const fallbackUrl = "http://localhost:5000/api";
+
+  if (!value) {
+    return fallbackUrl;
+  }
+
+  const trimmedValue = value.trim().replace(/\/+$/, "");
+
+  if (!trimmedValue) {
+    return fallbackUrl;
+  }
+
+  return trimmedValue.endsWith("/api") ? trimmedValue : `${trimmedValue}/api`;
+};
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"
+  baseURL: normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
 });
 
 export const tokenStorageKey = "mailpilot_token";

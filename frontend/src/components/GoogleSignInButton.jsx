@@ -6,10 +6,20 @@ const googleScriptSrc = "https://accounts.google.com/gsi/client";
 
 function GoogleSignInButton({ onSuccess, onError }) {
   const buttonRef = useRef(null);
+  const hasInitializedRef = useRef(false);
+  const isSubmittingRef = useRef(false);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
   const { saveSessionFromResponse } = useAuth();
   const [scriptReady, setScriptReady] = useState(
     typeof window !== "undefined" && Boolean(window.google?.accounts?.id)
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onError, onSuccess]);
 
   useEffect(() => {
     if (window.google?.accounts?.id) {
@@ -34,23 +44,43 @@ function GoogleSignInButton({ onSuccess, onError }) {
   }, []);
 
   useEffect(() => {
-    if (!scriptReady || !buttonRef.current || !window.google?.accounts?.id || !import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+    if (
+      !scriptReady ||
+      !buttonRef.current ||
+      !window.google?.accounts?.id ||
+      !import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+      hasInitializedRef.current
+    ) {
       return undefined;
     }
 
+    hasInitializedRef.current = true;
     window.google.accounts.id.initialize({
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       callback: async (response) => {
+        if (isSubmittingRef.current) {
+          return;
+        }
+
+        isSubmittingRef.current = true;
+        setIsSubmitting(true);
+
         try {
           const apiResponse = await apiClient.post("/auth/google", {
             credential: response.credential
           });
           saveSessionFromResponse(apiResponse.data.data);
-          onSuccess?.(apiResponse.data.data.user);
+          onSuccessRef.current?.(apiResponse.data.data.user);
         } catch (error) {
-          onError?.(error.response?.data?.message || "Google sign-in failed");
+          onErrorRef.current?.(error.response?.data?.message || "Google sign-in failed");
+        } finally {
+          isSubmittingRef.current = false;
+          setIsSubmitting(false);
         }
-      }
+      },
+      auto_select: false,
+      use_fedcm_for_button: false,
+      button_auto_select: false
     });
 
     buttonRef.current.innerHTML = "";
@@ -63,7 +93,7 @@ function GoogleSignInButton({ onSuccess, onError }) {
     });
 
     return undefined;
-  }, [onError, onSuccess, saveSessionFromResponse, scriptReady]);
+  }, [saveSessionFromResponse, scriptReady]);
 
   if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
     return null;
@@ -71,7 +101,18 @@ function GoogleSignInButton({ onSuccess, onError }) {
 
   return (
     <div className="space-y-3">
-      <div ref={buttonRef} className="flex justify-center sm:justify-start" />
+      <div className="relative inline-flex max-w-full">
+        <div
+          ref={buttonRef}
+          aria-hidden={isSubmitting}
+          className={`flex justify-center sm:justify-start ${isSubmitting ? "pointer-events-none opacity-70" : ""}`}
+        />
+        {isSubmitting ? (
+          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/70 text-xs font-semibold text-slate-700 backdrop-blur-[1px]">
+            Signing in with Google...
+          </div>
+        ) : null}
+      </div>
       <p className="text-xs text-slate-500">Continue securely with your Google account.</p>
     </div>
   );
