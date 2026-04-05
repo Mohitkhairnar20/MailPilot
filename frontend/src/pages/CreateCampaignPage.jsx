@@ -162,6 +162,7 @@ function CreateCampaignPage() {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templateName, setTemplateName] = useState("");
+  const [templateGenerationSource, setTemplateGenerationSource] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -304,6 +305,7 @@ function CreateCampaignPage() {
   const handleGenerateTemplate = async () => {
     setMessage("");
     setError("");
+    setTemplateGenerationSource("");
 
 
     if (!formData.templatePrompt.trim()) {
@@ -337,10 +339,11 @@ function CreateCampaignPage() {
         subject: response.data?.data?.subject || current.subject,
         content: response.data?.data?.content || current.content
       }));
+      setTemplateGenerationSource(response.data?.data?.source || "");
       setMessage(
         response.data?.data?.source === "fallback"
-          ? "OpenAI generation is unavailable for the current key, so MailPilot created a fallback draft from your prompt. Review and edit it before continuing."
-          : "AI draft generated. Review and edit the subject and content before continuing."
+          ? "Fallback draft created. Review and edit it before continuing."
+          : "Draft generated. Review the subject and content before continuing."
       );
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to generate an AI template.");
@@ -353,6 +356,7 @@ function CreateCampaignPage() {
     setSelectedTemplateId(templateId);
     setMessage("");
     setError("");
+    setTemplateGenerationSource("");
 
     if (!templateId) {
       return;
@@ -564,6 +568,7 @@ function CreateCampaignPage() {
       setMessage("Campaign created successfully and queued for delivery.");
       setFormData(initialState);
       setContentMode("");
+      setTemplateGenerationSource("");
       setSelectedTemplateId("");
       setTemplateName("");
       setRecipients([]);
@@ -703,7 +708,12 @@ function CreateCampaignPage() {
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => setContentMode("manual")}
+                  onClick={() => {
+                    setContentMode("manual");
+                    setTemplateGenerationSource("");
+                    setMessage("");
+                    setError("");
+                  }}
                   className={contentMode === "manual" ? "rounded-2xl border border-[#132238] bg-[#132238] px-5 py-5 text-left text-white transition" : "rounded-2xl border border-slate-200 bg-white px-5 py-5 text-left text-slate-800 transition hover:border-slate-300"}
                 >
                   <p className="text-base font-semibold">Manual</p>
@@ -714,7 +724,11 @@ function CreateCampaignPage() {
 
                 <button
                   type="button"
-                  onClick={() => setContentMode("ai")}
+                  onClick={() => {
+                    setContentMode("ai");
+                    setMessage("");
+                    setError("");
+                  }}
                   className={contentMode === "ai" ? "rounded-2xl border border-[#132238] bg-[#132238] px-5 py-5 text-left text-white transition" : "rounded-2xl border border-slate-200 bg-white px-5 py-5 text-left text-slate-800 transition hover:border-slate-300"}
                 >
                   <p className="text-base font-semibold">AI assisted</p>
@@ -834,6 +848,24 @@ function CreateCampaignPage() {
             {contentMode === "ai" ? (
               <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
                 <div className="space-y-4">
+                  <div className="rounded-2xl border border-[#d9e7f7] bg-[#f6fbff] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">How this works</p>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                      <div className="rounded-xl border border-white/80 bg-white/80 p-3">
+                        <p className="text-sm font-semibold text-slate-800">1. Enter prompt</p>
+                        <p className="mt-1 text-sm text-slate-600">Describe the email you want to send.</p>
+                      </div>
+                      <div className="rounded-xl border border-white/80 bg-white/80 p-3">
+                        <p className="text-sm font-semibold text-slate-800">2. Generate draft</p>
+                        <p className="mt-1 text-sm text-slate-600">MailPilot creates a first subject and body for you.</p>
+                      </div>
+                      <div className="rounded-xl border border-white/80 bg-white/80 p-3">
+                        <p className="text-sm font-semibold text-slate-800">3. Review and edit</p>
+                        <p className="mt-1 text-sm text-slate-600">Adjust the result before going to preview.</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
                     <label className="block">
                       <span className="mb-2 block text-sm font-semibold text-slate-700">AI prompt</span>
@@ -857,11 +889,17 @@ function CreateCampaignPage() {
                       {isGeneratingTemplate ? "Generating draft..." : "Generate draft with AI"}
                     </button>
                   </div>
+
+                  {templateGenerationSource === "fallback" ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                      AI is unavailable for the current key, so MailPilot created a simple fallback draft. Review and refine it before continuing.
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="space-y-4">
                   <label className="block">
-                    <span className="mb-2 block text-sm font-semibold text-slate-700">Generated subject</span>
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">Review subject</span>
                     <input
                       className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-coral"
                       name="subject"
@@ -873,7 +911,7 @@ function CreateCampaignPage() {
                   </label>
 
                   <label className="block">
-                    <span className="mb-2 block text-sm font-semibold text-slate-700">Generated email content</span>
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">Review email content</span>
                     <textarea
                       className="min-h-72 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-coral"
                       name="content"
@@ -888,6 +926,13 @@ function CreateCampaignPage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Supported placeholders</p>
                     <p className="mt-2 text-sm text-slate-600">
                       Use <code>{"{{name}}"}</code>, <code>{"{{firstName}}"}</code>, <code>{"{{email}}"}</code>, <code>{"{{company}}"}</code>, or <code>{"{{role}}"}</code>.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-[#fcfaf7] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Ready for next step?</p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      When the subject and email body look right, click <span className="font-semibold text-slate-800">Next step</span> to preview how placeholders render for recipients.
                     </p>
                   </div>
                 </div>

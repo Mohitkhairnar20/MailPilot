@@ -29,6 +29,70 @@ const renderTemplate = (template, recipient) => {
   return template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_match, key) => variables[key] ?? "");
 };
 
+const escapeHtml = (value) =>
+  String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const looksLikeHtml = (value) => /<\/?[a-z][\s\S]*>/i.test(String(value || ""));
+
+const plainTextToHtml = (text) => {
+  const normalized = String(text || "").replace(/\r\n/g, "\n").trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  const blocks = normalized
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  const htmlBlocks = [];
+
+  blocks.forEach((block) => {
+    const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+    const isBulletList = lines.length > 1 && lines.every((line) => /^([-*]|\d+[.)])\s+/.test(line));
+
+    if (isBulletList) {
+      const items = lines
+        .map((line) => line.replace(/^([-*]|\d+[.)])\s+/, "").trim())
+        .filter(Boolean)
+        .map((line) => `<li style="margin:0 0 8px;">${escapeHtml(line)}</li>`)
+        .join("");
+
+      htmlBlocks.push(`<ul style="margin:0 0 16px 20px; padding:0;">${items}</ul>`);
+      return;
+    }
+
+    const paragraph = lines.map((line) => escapeHtml(line)).join("<br />");
+    htmlBlocks.push(`<p style="margin:0 0 16px; line-height:1.7; color:#1f2937;">${paragraph}</p>`);
+  });
+
+  return `
+    <div style="background:#f8fafc; padding:24px;">
+      <div style="max-width:640px; margin:0 auto; background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; padding:32px; font-family:Arial, Helvetica, sans-serif; font-size:16px;">
+        ${htmlBlocks.join("")}
+      </div>
+    </div>
+  `.trim();
+};
+
+const htmlToPlainText = (html) =>
+  String(html || "")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "- ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\n\s+\n/g, "\n\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
 const updateCampaignStatus = async (campaignId) => {
   const [sentCount, failedCount, totalRecipients] = await Promise.all([
     EmailLog.countDocuments({ campaign: campaignId, status: "sent" }),
@@ -90,8 +154,9 @@ const startEmailWorker = async () => {
       }
 
       const renderedSubject = renderTemplate(subject, recipient);
-      const renderedHtml = renderTemplate(content, recipient);
-      const renderedText = renderedHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      const renderedContent = renderTemplate(content, recipient);
+      const renderedHtml = looksLikeHtml(renderedContent) ? renderedContent : plainTextToHtml(renderedContent);
+      const renderedText = looksLikeHtml(renderedContent) ? htmlToPlainText(renderedHtml) : renderedContent;
 
       const result = await sendCampaignEmail({
         to: recipient.email,
