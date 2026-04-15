@@ -187,22 +187,22 @@ This gives the project a reliable baseline pipeline even before linting and auto
 Add these repository secrets before enabling deployment:
 
 - `RENDER_API_DEPLOY_HOOK`
-- `RENDER_WORKER_DEPLOY_HOOK`
 - `RENDER_WEB_DEPLOY_HOOK`
 
 Each secret should contain the matching Render deploy hook URL for:
 
-- `mailpilot-api`
-- `mailpilot-worker`
-- `mailpilot-web`
+- your backend service
+- your frontend service
 
 ### How CD works
 
 1. Push to `main`
 2. GitHub Actions runs `CI`
-3. If CI passes, `Deploy to Render` triggers all three Render services
+3. If CI passes, `Deploy to Render` triggers the backend and frontend Render services
 
 You can also run the deploy workflow manually from the GitHub Actions tab using `workflow_dispatch`.
+
+If you later create a dedicated Render worker service, you can extend the workflow with a third deploy hook at that time.
 
 ## Queue and Scheduling Flow
 

@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger API deploy
+      - name: Trigger backend deploy
         env:
           RENDER_API_DEPLOY_HOOK: ${{ secrets.RENDER_API_DEPLOY_HOOK }}
         run: |
@@ -29,16 +29,6 @@ jobs:
             exit 1
           fi
           curl --fail --silent --show-error --request POST "$RENDER_API_DEPLOY_HOOK"
-
-      - name: Trigger worker deploy
-        env:
-          RENDER_WORKER_DEPLOY_HOOK: ${{ secrets.RENDER_WORKER_DEPLOY_HOOK }}
-        run: |
-          if [ -z "$RENDER_WORKER_DEPLOY_HOOK" ]; then
-            echo "Missing secret: RENDER_WORKER_DEPLOY_HOOK" >&2
-            exit 1
-          fi
-          curl --fail --silent --show-error --request POST "$RENDER_WORKER_DEPLOY_HOOK"
 
       - name: Trigger frontend deploy
         env:
