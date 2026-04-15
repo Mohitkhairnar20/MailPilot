@@ -165,6 +165,45 @@ npm run dev:frontend
 - `npm run build --workspace frontend`
 - `npm run preview --workspace frontend`
 
+## CI/CD Pipeline
+
+This repository now includes GitHub Actions workflows in `.github/workflows`:
+
+- `ci.yml` runs on pull requests and pushes to `main`, `master`, and `develop`
+- `deploy-render.yml` triggers Render deployments after CI succeeds on pushes to `main`, or manually through GitHub Actions
+
+### CI checks
+
+The CI workflow currently performs:
+
+- dependency installation with `npm ci`
+- backend JavaScript syntax validation with `npm run ci:backend`
+- frontend production build with `npm run ci:frontend`
+
+This gives the project a reliable baseline pipeline even before linting and automated tests are added.
+
+### Required GitHub Secrets For CD
+
+Add these repository secrets before enabling deployment:
+
+- `RENDER_API_DEPLOY_HOOK`
+- `RENDER_WORKER_DEPLOY_HOOK`
+- `RENDER_WEB_DEPLOY_HOOK`
+
+Each secret should contain the matching Render deploy hook URL for:
+
+- `mailpilot-api`
+- `mailpilot-worker`
+- `mailpilot-web`
+
+### How CD works
+
+1. Push to `main`
+2. GitHub Actions runs `CI`
+3. If CI passes, `Deploy to Render` triggers all three Render services
+
+You can also run the deploy workflow manually from the GitHub Actions tab using `workflow_dispatch`.
+
 ## Queue and Scheduling Flow
 
 1. Campaign is created as:

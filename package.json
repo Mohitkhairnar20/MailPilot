@@ -12,6 +12,9 @@
     "dev:backend": "npm run dev --workspace backend",
     "dev:worker": "npm run dev:worker --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",
+    "ci:backend": "node scripts/verify-backend.js",
+    "ci:frontend": "npm run build --workspace frontend",
+    "ci": "npm run ci:backend && npm run ci:frontend",
     "build": "npm run build --workspace frontend",
     "start": "npm run start --workspace backend"
   },
